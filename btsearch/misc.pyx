@@ -18,29 +18,24 @@ ctypedef fused datype:
 def Whiten(datype fb):
     """
     whiten the data block per axis=1
+
+    write in place
     """
     # constants 
     cdef Py_ssize_t nchans   = fb.shape[0]
     cdef Py_ssize_t nsamps   = fb.shape[1]
     # arrays
-    cdef datype ret                              = np.zeros ([nchans, nsamps], dtype=fb.dtype)
+    cdef datype rmean        = np.zeros ([nchans,], dtype=bt.dtype)
+    cdef datype rstd         = np.zeros ([nchans,], dtype=bt.dtype)
 
-    #### std divide
-    cdef Py_ssize_t ichan, isamp
-    cdef double rx, rxx, std
-    for ichan in range ( nchans ):
-        rx   = 0.0
-        rxx  = 0.0
-        std  = 0.0
-        for isamp in range ( nsamps ):
-            rx   += fb[ichan, isamp]
-            rxx  += fb[ichan, isamp]*fb[ichan, isamp]
-        rx    /= nsamps
-        rxx   /= nsamps
-        std   = ( rxx - (rx*rx) ) ** 0.5
-        if std == 0.0: std = 1.0
-        for isamp in range ( nsamps ):
-            ret[ichan, isamp]   = ( fb[ichan, isamp] - rx ) / std
+    # action
+
+    rmean[...]     = fb.mean (1)
+    rstd[...]      = fb.std  (1)
+
+    for i in range (nchans):
+        if rstd[i,0] != 0.0:
+            fb[i,...] = (fb[i,...] - rmean[i] ) / rstd[i]
 
     return ret
 

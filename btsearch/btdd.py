@@ -9,6 +9,9 @@ DM_FAC = 4.148741601E-3
 # v for MHz
 # DM_CONST = 4.148741601E6
 
+# TT
+import time
+
 class BTDD:
     """
     Class to streamline computation of bowtie plane and de-dispersed filterbank.
@@ -129,12 +132,25 @@ class BTDD:
 
         No slicing is done here. That should be done by the caller.
         """
-        ff                  = fb - fb.mean ( 1 ).reshape ((-1, 1)) 
-        fs                  = ff.std ( 1 ).reshape ((-1, 1))
-        ff                  = np.divide ( ff, fs, where=fs!=0, out=np.zeros_like(fb))
+        # TT
+        # ta  = time.time ()
+        # ff                  = fb - fb.mean ( 1 ).reshape ((-1, 1)) 
+        # fs                  = ff.std ( 1 ).reshape ((-1, 1))
+        # ff                  = np.divide ( ff, fs, where=fs!=0, out=np.zeros_like(fb))
+        # TT
+        # tb  = time.time ()
         ## actual computation
-        step1_dd            = self.incoh (ff, self.step1_delays)
+        step1_dd            = self.incoh (fb, self.step1_delays)
+        # TT
+        # tc  = time.time ()
         step22_bt           = self.fdmt.Bowtie_maxdt (step1_dd, self.ndm)
+        # TT
+        # td  = time.time ()
+        # tsetup  = tb - ta
+        # tincoh  = tc - tb
+        # tbt     = td - tc
+        # ttt     = td - ta
+        # print (f" BTDD::work_bt times setup={tsetup:.3f} ({tsetup/ttt*100:.1f} %) incoh={tincoh:.3f} ({100*tincoh/ttt:.1f} %) bt={tbt:.3f} ({100*tbt/ttt:.1f} %)")
 
         ## return
         return step22_bt[...,:take]
@@ -145,11 +161,11 @@ class BTDD:
 
         No slicing is done here. That should be done by the caller.
         """
-        ff                  = fb - fb.mean ( 1 ).reshape ((-1, 1)) 
-        fs                  = ff.std ( 1 ).reshape ((-1, 1))
-        ff                  = np.divide ( ff, fs, where=fs!=0, out=np.zeros_like(fb))
+        # ff                  = fb - fb.mean ( 1 ).reshape ((-1, 1)) 
+        # fs                  = ff.std ( 1 ).reshape ((-1, 1))
+        # ff                  = np.divide ( ff, fs, where=fs!=0, out=np.zeros_like(fb))
         ## actual computation
-        step1_dd            = self.incoh (ff, self.step1_delays)
+        step1_dd            = self.incoh (fb, self.step1_delays)
         step21_dd           = self.incoh (step1_dd, self.step21_delays)
         step22_bt           = self.fdmt.Bowtie_maxdt (step1_dd, self.ndm)
 

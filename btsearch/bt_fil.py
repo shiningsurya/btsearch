@@ -90,8 +90,8 @@ if __name__ == "__main__":
     info['ndm']      = ndm
     info['nsamps']   = nsamps
     info['dm']       = dm
-    info['dm1']      = btdd.dm_axis[0]
-    info['dmoff']    = btdd.dm_axis[1] - btdd.dm_axis[0]
+    info['dm1']      = float ( btdd.dm_axis[0] )
+    info['dmoff']    = float ( btdd.dm_axis[1] - btdd.dm_axis[0] )
     info['maxd']     = max_delay
     info['creation_datetime'] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -110,6 +110,7 @@ if __name__ == "__main__":
             gulp[:, nread:] = 0
         # do we do per-channel whitening?
         ### disabling it for now
+        misc.Whiten ( gulp )
         # gchan[...,0]   = gulp.mean (1)
         # gulp           -= gchan
         # gchan[...,0]   = gulp.std (1)

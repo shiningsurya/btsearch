@@ -14,6 +14,7 @@ import numpy  as np
 cimport numpy as np
 
 ctypedef fused datype:
+    np.ndarray[np.float64_t, ndim=2]
     np.ndarray[np.float32_t, ndim=2]
     np.ndarray[np.uint8_t, ndim=2]
 
@@ -32,14 +33,18 @@ def Dedisperser_negative (datype fb, np.ndarray[DDTYPE_t, ndim=1] delays):
     if nsamps <= maxdelay:
         raise ValueError ("DM range too high!")
     cdef Py_ssize_t ddnsamps = nsamps - maxdelay
-    cdef Py_ssize_t tidx     = 0
+    cdef Py_ssize_t udx = 0, vdx = 0
     # output array
     cdef datype ret = np.zeros ([nchans, ddnsamps], dtype=fb.dtype)
     # algo
-    for isamp in range (ddnsamps):
-        for ichan in range (nchans):
-            tidx = isamp + delays[ichan]
-            ret[ichan, isamp] = fb[ichan, tidx]
+    # for isamp in range (ddnsamps):
+        # for ichan in range (nchans):
+            # tidx = isamp + delays[ichan]
+            # ret[ichan, isamp] = fb[ichan, tidx]
+    for ichan in range (nchans):
+        udx = delays[ichan]
+        vdx = udx + ddnsamps
+        ret[ichan,...]   =  fb[ichan, udx:vdx]
     #
     return ret
 
@@ -59,10 +64,14 @@ def Dedisperser_positive (datype fb, np.ndarray[DDTYPE_t, ndim=1] delays):
     # output array
     cdef datype ret = np.zeros ([nchans, ddnsamps], dtype=fb.dtype)
     # algo
-    for isamp in range (ddnsamps):
-        for ichan in range (nchans):
-            tidx = isamp + delays[ichan]
-            ret[ichan, isamp] = fb[ichan, tidx]
+    # for isamp in range (ddnsamps):
+        # for ichan in range (nchans):
+            # tidx = isamp + delays[ichan]
+            # ret[ichan, isamp] = fb[ichan, tidx]
+    for ichan in range (nchans):
+        udx = delays[ichan]
+        vdx = udx + ddnsamps
+        ret[ichan,...]   =  fb[ichan, udx:vdx]
     #
     return ret
 

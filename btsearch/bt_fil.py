@@ -16,7 +16,10 @@ import pyximport; pyximport.install (setup_args={"include_dirs":np.get_include()
 import misc
 
 # import sigpyproc as spp
-from sigpyproc.readers import FilReader
+try:
+    from sigpyproc.readers import FilReader
+except:
+    from sigpyproc import FilReader
 
 from scipy.ndimage import uniform_filter1d
 
@@ -80,7 +83,7 @@ if __name__ == "__main__":
     ##### setup read_plan
     gulp      = np.zeros ((nchans, gulp_size+max_delay), dtype=np.float32)
     gchan            = np.zeros ((nchans,1), dtype=np.float32)
-    rp        = fil.read_plan ( gulp_size+max_delay, start=0, skipback=max_delay, verbose=args.v )
+    rp        = fil.readPlan ( gulp_size+max_delay, start=0, skipback=max_delay, verbose=args.v )
     ## prepare info
     info             = dict ()
     info['fch1']     = fch1
@@ -140,7 +143,7 @@ if __name__ == "__main__":
         # write
         jj      = ii + gulp_size
         # print (f" ii:jj = {ii:d}, {jj:d} | btshape = {bt.shape} | nread = {nread:d}")
-        m_bt[...,ii:jj] = obt[...]
+        m_bt[...,ii:jj] = obt[:ndm,...]
         ii      = jj
     #####
     with open (OJS, 'w') as f:

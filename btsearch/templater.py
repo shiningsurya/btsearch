@@ -10,7 +10,10 @@ import datetime
 import numpy as np
 
 # import sigpyproc as spp
-from sigpyproc.readers import FilReader
+try:
+    from sigpyproc.readers import FilReader
+except:
+    from sigpyproc import FilReader
 
 import pyximport; pyximport.install (setup_args={"include_dirs":np.get_include()})
 
@@ -144,7 +147,7 @@ class BowtieTemplate:
 
         ##
         ## create bowtie 
-        bt     = self.fdmt.Bowtie_maxdt (fb, self.ndm)[:,:self.ndm]
+        bt     = self.fdmt.Bowtie_maxdt (fb, self.ndm)[:self.ndm,:self.ndm]
 
         ##
         ## normalize bowtie

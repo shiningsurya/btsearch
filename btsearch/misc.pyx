@@ -25,8 +25,8 @@ def Whiten(datype fb):
     cdef Py_ssize_t nchans   = fb.shape[0]
     cdef Py_ssize_t nsamps   = fb.shape[1]
     # arrays
-    cdef datype rmean        = np.zeros ([nchans,], dtype=bt.dtype)
-    cdef datype rstd         = np.zeros ([nchans,], dtype=bt.dtype)
+    cdef np.ndarray[np.float64_t, ndim=1] rmean        = np.zeros ([nchans,], dtype=np.float64)
+    cdef np.ndarray[np.float64_t, ndim=1] rstd         = np.zeros ([nchans,], dtype=np.float64)
 
     # action
 
@@ -34,10 +34,8 @@ def Whiten(datype fb):
     rstd[...]      = fb.std  (1)
 
     for i in range (nchans):
-        if rstd[i,0] != 0.0:
+        if rstd[i] != 0.0:
             fb[i,...] = (fb[i,...] - rmean[i] ) / rstd[i]
-
-    return ret
 
 @cython.boundscheck (False)
 @cython.wraparound  (False)

@@ -16,9 +16,10 @@ import pyximport; pyximport.install (setup_args={"include_dirs":np.get_include()
 import misc
 
 # import sigpyproc as spp
-from sigpyproc.readers import FilReader
-
-from scipy.ndimage import uniform_filter1d
+try:
+    from sigpyproc.readers import FilReader
+except ImportError:
+    from sigpyproc import FilReader
 
 OFILE="{fname}_dm{dm:04.3f}_n{ndm:03d}_bt.{{ext}}"
 

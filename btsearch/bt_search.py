@@ -51,6 +51,7 @@ if __name__ == "__main__":
     tempath   = args.temps
     filname,_ = os.path.splitext (filpath)
     infpath   = filname + ".json"
+    candpath  = filname + ".cands"
     thres     = args.sn
     ## read templates
     tempz     = np.load ( tempath )
@@ -156,15 +157,6 @@ if __name__ == "__main__":
                 cands ( iw, sn=max_sn, sm=max_sm, dm=max_dm, sm_offset=uu )
         cands.aggregate ()
         ########## action
-        """
-        cands.print ()
-        shower ( bts, ax1 )
-        shower ( btc, ax2 )
-        # ll[ll<0] = np.nan
-        # shower ( ll, ax3 )
-        plt.show ()
-        adf
-        """
     ## last read
     #### always left with half overlap
     uu = ( niter - 1 ) * gulp
@@ -184,6 +176,8 @@ if __name__ == "__main__":
     ## loop
     ####################################################################
     ########## action
-    cands.save ("test_bt.cands")
+    if args.v:
+        print (f"")
+    cands.save (candpath)
 
 

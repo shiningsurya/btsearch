@@ -12,14 +12,16 @@ import numpy as np
 # import sigpyproc as spp
 try:
     from sigpyproc.readers import FilReader
-except:
+except ImportError:
     from sigpyproc import FilReader
 
 import pyximport; pyximport.install (setup_args={"include_dirs":np.get_include()})
-
 import fdmt as t_fdmt
 
 OFILE="{fname}_n{ndm:03d}_template.{ext}"
+
+## these widths taken from presto.single_pulse_search.py
+WIDTHS = np.array ([1, 2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150, 220, 300])
 
 def NormalizeTemplate (itemp):
     """
@@ -328,9 +330,10 @@ if __name__ == "__main__":
     print (info)
     ###############################
     temper    = BowtieTemplate ( tsamp=tsamp, nchans=nchans, fch1=fch1, foff=foff, ndm=ndm )
-    n_temps   = int ( np.log2 ( hdm ) )
-    templates = np.zeros ((n_temps+1, ndm, ndm))
-    widths    = np.power (2, np.arange(n_temps+1))
+    widths    = np.power (2, WIDTHS[WIDTHS < hdm])
+    n_temps   = widths.size
+    templates = np.zeros ((n_temps, ndm, ndm))
+    # widths    = np.power (2, np.arange(n_temps+1))
     ### call
     for idx, iwidth in enumerate (widths):
         templates[idx] = temper (iwidth, amplitude=1.0)

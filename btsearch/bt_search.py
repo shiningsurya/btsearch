@@ -15,17 +15,13 @@ import os
 import json
 import time
 
-import numpy as np
-import matplotlib.pyplot as plt
-
-from scipy.signal import fftconvolve 
-
 import tqdm
 
+import numpy as np
+
+## btsearch imports
 from ccl import clusterer
-
 from candidates import Candidates
-
 from convolution import ConvolutionEngine
 
 def get_args():
@@ -33,15 +29,19 @@ def get_args():
     ap = arp.ArgumentParser (prog='btsearch',description='Searches for bowtie using templates',)
     add = ap.add_argument
     add ('bowtie',help='Bowtie memmap array')
-    add ('--dir', help='Directory to save the candidates', dest='dir', default='candidates')
+    add ('--dir', help='Directory to save the candidates', dest='dir', default='./')
     add ('-t','--template', help='Templates npz file', dest='temps', required=True)
     add ('-T','--threshold', help='S/N threshold', dest='sn',  type=float, default=6)
     add ('-v','--verbose', help='Verbose', action='store_true', dest='v')
+    add ('--gulp', help='Gulp size in multiples of ndm', default=8, type=int, dest='g')
+    add ('--overlap', help='Overlap size in multiples of ndm. (must be less than gulp)', default=2, type=int, dest='o')
     return ap.parse_args()
 
 if __name__ == "__main__":
     ################################
     args      = get_args()
+    if args.o >= args.g:
+        raise ValueError ("Overlap cannot be more than gulp")
     ### make directory if it does not exist
     if not os.path.isdir (args.dir):
         os.mkdir (args.dir)
@@ -53,21 +53,18 @@ if __name__ == "__main__":
     infpath   = filname + ".json"
     candpath  = filname + ".cands"
     thres     = args.sn
-    ## read templates
-    tempz     = np.load ( tempath )
-    # tempz    = np.load ('test_paflike_boxcar_256.npz')
-    # tempz    = np.load ('test_paflike_bowtie_256.npz')
-    temps     = tempz['templates']
-    widths    = tempz['widths']
-    ntemps    = widths.shape[0]
+    candpath  = filname + ".cands"
     ## read bowtie and info
     #### first read info
     with open (infpath, 'r') as f:
         inf   = json.load ( f )
     bter      = np.memmap ( filpath, dtype=np.float32, mode='r', shape=(inf['ndm'], inf['nsamps']) )
     tsamp     = inf['tsamp']
-    # bter     = np.memmap ('2020-12-09-16:37:40_dm57.bt.npy', dtype=np.float32, mode='r', shape=(256, 1327104))
+    fch1      = inf['fch1']
+    foff      = inf['foff']
+    nchans    = inf['nchans']
     ndm, nsamps = bter.shape
+    dm_axis   = inf['dm1'] + (np.arange (ndm, dtype=np.float32)*inf['dmoff'])
     ###############################
     ## do sanity check
     # if ( inf['fch1'] != tempz['fch1'] )  or ( inf['foff'] != tempz['foff'] ) or ( inf['nchans'] != tempz['nchans'] ):
@@ -75,30 +72,32 @@ if __name__ == "__main__":
     # if ( inf['tsamp'] != tempz['tsamp'] ):
         # raise ValueError ("time axis not consistent ...")
     ###############################
+    ## read templates
+    """
+    ## or make templates
+    if args.v:
+        print (" Building templates ... ", end='')
+    hdm       = ndm // 2
+    temper    = BowtieTemplate ( tsamp=tsamp, nchans=nchans, fch1=fch1, foff=foff, ndm=ndm )
+    ntemps    = int ( np.log2 ( hdm ) )
+    temps     = np.zeros ((n_temps+1, ndm, ndm))
 
-    ## geometry
-    gulp      = 8 * ndm
-    overlap   = 2  * ndm
-    gov       = gulp + overlap
-    halflap   = overlap // 2
-    gulplap   = halflap + gulp
-    niter     = int ( nsamps / gulp )
+    # Powers of two?
+    widths    = np.power (2, np.arange(n_temps+1))
+    ### call
+    for idx, iwidth in enumerate (widths):
+        temps[idx] = temper (iwidth, amplitude=1.0)
+    """
+    # old code
+    tempz     = np.load ( tempath )
+    temps     = tempz['templates']
+    widths    = tempz['widths']
+    ntemps    = widths.shape[0]
+    if args.v:
+        print (" done")
 
-    ## setting up convolution engine
-    ce        = ConvolutionEngine ( (ndm, gov), (ndm, ndm) )
-
-    print (" manually setting gulp and overlap here = ", gulp, overlap)
-
-    # adfa
-    ## ignore the last samples
-    # it        = tqdm.tqdm ( range(niter), desc='Chunk', unit='bt' )
-    iterator   = tqdm.tqdm ( range(1, niter-1), desc='Chunk', unit='bt' )
-    # it        = tqdm.tqdm ( range(100), desc='Chunk', unit='bt' )
-    # iterator   = tqdm.tqdm ( [91,], desc='Chunk', unit='bt' )
-    # it        = tqdm.tqdm ( [91,], desc='Chunk', unit='bt' )
-    # it        = tqdm.tqdm ( [100,], desc='Chunk', unit='bt' )
-    # it        = tqdm.tqdm ( [135], desc='Chunk', unit='bt' )
-    # it        = tqdm.tqdm ( [191], desc='Chunk', unit='bt' )
+    if args.v:
+        print (f" Precomputing template FFTs ... ", end='')
     ##
     ## prepare temp ffts
     template_ffts = np.zeros ((ntemps, ce.shape0_fft, ce.shape1_rfft), dtype=np.complex128)
@@ -108,23 +107,24 @@ if __name__ == "__main__":
         ## prolly move this step to template creator?
         template_ffts[i]  = ce.do_fft ( temps[i] / ndm )
 
-    #
-    cands     = Candidates ( ntemps, tsamp )
+    if args.v:
+        print (" done")
 
-    #### diagnostics
-    """
-    fig       = plt.figure ()
-    (ax1,ax2, ax3) = fig.subplots (3, 1, sharex=True, sharey=True)
-    # (ax1,ax2) = fig.subplots (2, 1, sharex=True, sharey=True)
-    ax3.set_xlabel ('Time / index')
-    ax1.set_ylabel ('DM / index')
-    ax2.set_ylabel ('DM / index')
-    # ax3.set_ylabel ('DM / index')
-    shower   = lambda x,ax : ax.imshow (x, aspect='auto', cmap='plasma', interpolation='none', origin='lower')
-    # shower   = lambda x,ax : ax.plot (x[128])
-    """
+    ## geometry
+    gulp      = args.g * ndm
+    overlap   = args.o  * ndm
+    gov       = gulp + overlap
+    halflap   = overlap // 2
+    gulplap   = halflap + gulp
+    niter     = int ( nsamps / gulp )
+
+    ## setting up convolution engine
+    ce        = ConvolutionEngine ( (ndm, gov), (ndm, ndm) )
+    ## setting  up candidate sink
+    cands     = Candidates ( ntemps, tsamp, dm_axis )
     ####################################################################
     ## loop
+    iterator   = tqdm.tqdm ( range(1, niter-1), desc='Chunk', unit='bt' )
     ####################################################################
     ## loop variables
     #### ii,jj to slice from bter
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     bts_fft   = ce.do_fft ( bter [ ..., ii:jj ] )
     for i,iw in enumerate (widths):
         btc   = ce.do_ifft ( bts_fft * template_ffts[i] )
-        ll, max_dm, max_sm, max_sn = clusterer_label ( btc, thres, ndm, 0, gulp )
+        ll, max_dm, max_sm, max_sn = clusterer ( btc, thres, ndm, 0, gulp )
         if ll > 0:
             cands ( iw, sn=max_sn, sm=max_sm, dm=max_dm, sm_offset=uu )
     cands.aggregate ()
@@ -143,6 +143,8 @@ if __name__ == "__main__":
     ################## time
     ## loop
     for  it in iterator:
+        ## decorate my progressbar
+        iterator.set_description (f"Found {cands.total_count:d} cands")
         ## get the indices
         uu    = it * gulp
         vv    = uu + gulp
@@ -152,7 +154,7 @@ if __name__ == "__main__":
         bts_fft   = ce.do_fft ( bter [ ..., ii:jj ] )
         for i,iw in enumerate (widths):
             btc   = ce.do_ifft ( bts_fft * template_ffts[i] )
-            ll, max_dm, max_sm, max_sn = clusterer_label ( btc, thres, ndm, halflap, gulplap )
+            ll, max_dm, max_sm, max_sn = clusterer ( btc, thres, ndm, halflap, gulplap )
             if ll > 0:
                 cands ( iw, sn=max_sn, sm=max_sm, dm=max_dm, sm_offset=uu )
         cands.aggregate ()
@@ -167,7 +169,7 @@ if __name__ == "__main__":
     bts_fft   = ce.do_fft ( bter [ ..., ii:jj ] )
     for i,iw in enumerate (widths):
         btc   = ce.do_ifft ( bts_fft * template_ffts[i] )
-        ll, max_dm, max_sm, max_sn = clusterer_label ( btc, thres, ndm, halflap, vv - uu + halflap)
+        ll, max_dm, max_sm, max_sn = clusterer ( btc, thres, ndm, halflap, vv - uu + halflap)
         if ll > 0:
             cands ( iw, sn=max_sn, sm=max_sm, dm=max_dm, sm_offset=uu )
     cands.aggregate ()
@@ -177,7 +179,7 @@ if __name__ == "__main__":
     ####################################################################
     ########## action
     if args.v:
-        print (f"")
+        print (f" Saving {cands.total_count:d} candidates to {candpath}")
     cands.save (candpath)
 
 

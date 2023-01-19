@@ -41,7 +41,7 @@ class Candidates:
     For the overlapping candidates, we pick the one with the maximum s/n.
 
     """
-    def __init__ (self, ntemplates, tsamp):
+    def __init__ (self, ntemplates, tsamp, d):
         """
         does aggregation for every template
         """
@@ -50,6 +50,9 @@ class Candidates:
         self.tsamp  = tsamp
         self.pkg    = []
         self.agg    = dict(sn=[], time=[], dm=[], dfac=[], sample=[])
+        self.total_count = 0
+        ##
+        self.dmx    = [float(x) for x in d]
 
     def __reset (self):
         """ resets pkg """
@@ -95,9 +98,10 @@ class Candidates:
         """a is an ordered tuple"""
         self.agg['sn'].append ( a[ISN] )
         self.agg['sample'].append ( a[ISM] )
-        self.agg['dm'].append ( a[IDM] )
+        self.agg['dm'].append ( self.dmx[ a[IDM] ] )
         self.agg['dfac'].append ( a[IWD] )
         self.agg['time'].append ( a[ISM] * self.tsamp )
+        self.total_count += 1
 
     def __pick_one (self, a, b):
         """a,b are ordered tuples

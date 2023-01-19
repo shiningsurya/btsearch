@@ -96,6 +96,16 @@ if __name__ == "__main__":
     if args.v:
         print (" done")
 
+    ## geometry
+    gulp      = args.g * ndm
+    overlap   = args.o  * ndm
+    gov       = gulp + overlap
+    halflap   = overlap // 2
+    gulplap   = halflap + gulp
+    niter     = int ( nsamps / gulp )
+
+    ## setting up convolution engine
+    ce        = ConvolutionEngine ( (ndm, gov), (ndm, ndm) )
     if args.v:
         print (f" Precomputing template FFTs ... ", end='')
     ##
@@ -109,17 +119,6 @@ if __name__ == "__main__":
 
     if args.v:
         print (" done")
-
-    ## geometry
-    gulp      = args.g * ndm
-    overlap   = args.o  * ndm
-    gov       = gulp + overlap
-    halflap   = overlap // 2
-    gulplap   = halflap + gulp
-    niter     = int ( nsamps / gulp )
-
-    ## setting up convolution engine
-    ce        = ConvolutionEngine ( (ndm, gov), (ndm, ndm) )
     ## setting  up candidate sink
     cands     = Candidates ( ntemps, tsamp, dm_axis )
     ####################################################################

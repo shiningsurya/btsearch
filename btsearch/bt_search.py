@@ -22,9 +22,7 @@ from scipy.signal import fftconvolve
 
 import tqdm
 
-# import pyximport; pyximport.install (setup_args={"include_dirs":np.get_include()})
-# import sauf
-from test_ccl import clusterer_label
+from ccl import clusterer
 
 from candidates import Candidates
 
